@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Button } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Button, Alert } from 'react-native';
+import generateSudoku from '../utils/generateSudoku';
 
 const Sudoku = () => {
+    let [new_board,maskedBoard] = generateSudoku();
     const [selectedCell, setSelectedCell] = useState(null);
-    const [board, setBoard] = useState([
-        [5, 3, '', '', 7, '', '', '', ''],
-        [6, '', '', 1, 9, 5, '', '', ''],
-        ['', 9, 8, '', '', '', '', 6, ''],
-        [8, '', '', '', 6, '', '', '', 3],
-        [4, '', '', 8, '', 3, '', '', 1],
-        [7, '', '', '', 2, '', '', '', 6],
-        ['', 6, '', '', '', '', 2, 8, ''],
-        ['', '', '', 4, 1, 9, '', '', 5],
-        ['', '', '', '', 8, '', '', 7, 9],
-    ]);
+    const [ans,setAns] = useState(new_board);
+    const [iniboard, setIniBoard] = useState(maskedBoard);
+    const [board, setBoard] = useState(maskedBoard);
 
     const handleCellPress = (row, col) => {
         setSelectedCell({ row, col });
@@ -22,28 +16,59 @@ const Sudoku = () => {
     const handleNumberPress = (number) => {
         if (selectedCell) {
             const { row, col } = selectedCell;
-            const updatedBoard = [...board];
+            const updatedBoard = JSON.parse(JSON.stringify(board));
             updatedBoard[row][col] = number;
             setBoard(updatedBoard);
         }
     };
 
+    const handleNewPuzzle = () =>{
+        [new_board,maskedBoard] = generateSudoku();
+        setBoard(maskedBoard);
+        setIniBoard(maskedBoard);
+        setAns(new_board);
+    };
+    const handleRestart=()=>{
+        setBoard(iniboard);
+    };
+    const handleSubmit=()=>{
+        board===ans ? 
+            Alert.alert('Congratulations !!!', 'You solved the puzzle. Try another puzzle ?', [
+                {
+                text: 'Cancel',
+                onPress: () => {},
+                style: 'cancel',
+                },
+                {text: 'OK', onPress:()=>{handleNewPuzzle()}},
+            ]) : 
+            Alert.alert('OOPS !!!', 'Seems like you have made some mistake. Try again !', [
+                {text: 'OK', onPress: () => {}},
+            ]);;
+    };
+    const handleSolve = () =>{
+        setBoard(ans);
+    };
+    // const handleVerify = () =>{
+    //     for (row=0; row<9 ;row++){
+    //         for (col=0;col<9;col++){
+    //             if (board[row][col]===""){
+    //                 continue;
+    //             }
+    //             if (board[row][col]!==ans[row][col]){
+    //                 console.log(`No ${row} ${col}`);
+    //                 renderCell(row,col,board[row][col], true);
+    //             }
+    //         }
+    //     }
+    // }
+
     const renderCell = (row, col, value, isEditable) => {
-        const cellStyle = [
-            styles.cell,
-            // (col + Math.floor(row / 3)) % 2 === 0 ? styles.lightCell : styles.darkCell,
-            // selectedCell?.row === row && selectedCell?.col === col && styles.selectedCell,
-            ((col+row) %2 == 0 ) ? styles.lightCell : styles.darkCell,
+        const cellStyle = [styles.cell, (isEditable) ? styles.lightCell : styles.darkCell,
             selectedCell?.row === row && selectedCell?.col === col && styles.selectedCell,
         ];
 
         return (
-        <TouchableOpacity
-            key={`${row}-${col}`}
-            style={cellStyle}
-            onPress={() => handleCellPress(row, col)}
-            disabled={!isEditable}
-        >
+        <TouchableOpacity key={`${row}-${col}`} style={cellStyle} onPress={() => handleCellPress(row, col)} disabled={!isEditable}>
             <Text style={styles.cellText}>{value}</Text>
         </TouchableOpacity>
         );
@@ -53,12 +78,12 @@ const Sudoku = () => {
         <View style={styles.container}>
             <View style={styles.board}>
                 {board.map((row, rowIndex) => (
-                <View key={rowIndex} style={styles.row}>
-                    {row.map((cell, colIndex) => {
-                    const isEditable = cell === '';
-                    return renderCell(rowIndex, colIndex, cell, isEditable);
-                    })}
-                </View>
+                    <View key={rowIndex} style={styles.row}>
+                        {row.map((cell, colIndex) => {
+                            const isEditable = (iniboard[rowIndex][colIndex] === '');
+                            return renderCell(rowIndex, colIndex, cell, isEditable);
+                        })}
+                    </View>
                 ))}
             </View>
             <View style={styles.numberButtons}>
@@ -72,10 +97,15 @@ const Sudoku = () => {
                 </TouchableOpacity>
                 ))}
             </View>
-            <View style={styles.buttonsBelow}>
-                <Button title='Verify' style={styles.buttons}/>
-                <Button title='Restart' style={styles.buttons}/>
-                <Button title='Submit' style={styles.buttons}/>
+            <View style={[styles.buttonsBelow,{flexDirection:'column'}]}>
+                <View style={{flexDirection:'row', justifyContent:'space-between', marginBottom:10}}>
+                    <Button title='Restart' style={styles.buttons} onPress={handleRestart}/>
+                    <Button title="New Puzzle" style={styles.buttons} onPress={handleNewPuzzle}/>
+                </View>
+                <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+                    <Button title='Solve' style={styles.buttons} onPress={handleSolve}/>
+                    <Button title='Submit' style={styles.buttons} onPress={handleSubmit}/>
+                </View>
             </View>
         </View>
     );
@@ -84,12 +114,12 @@ const Sudoku = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     board: {
+        flex:1,
+        alignItems:'center',
         marginBottom: 20,
-        borderWidth:2,
+        justifyContent:'center',
     },
     row: {
         flexDirection: 'row',
@@ -106,6 +136,9 @@ const styles = StyleSheet.create({
     },
     darkCell: {
         backgroundColor: '#4CAF50',
+    },
+    redCell:{
+        backgroundColor: 'red',
     },
     selectedCell: {
         backgroundColor: 'yellow',
